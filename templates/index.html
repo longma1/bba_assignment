@@ -1,0 +1,220 @@
+<!DOCTYPE HTML>
+
+<html>
+
+    <head>
+        <style>
+
+        </style>
+        <script>
+            var day_number = 1;
+            var mean;
+            var std;
+            var mean_ln;
+            var std_ln;
+            var multiple = {'AAA':3.72, 'AA': 3.43, 'A': 3.06, 'BBB': 2.75, 'BB':2.40, 'B':2.01, 'CCC': 1.55,
+                'CC': 1.19, 'C':0.98};
+            function add_day(){
+                var all = document.getElementById("all");
+                var day = document.createElement("div");
+                day.style.float = "left";
+                day.style.paddingLeft="20px";
+                day.id = day_number.toString();
+
+                var rev = document.createElement("input");
+                rev.type = "text";
+                rev.id = "rev"+day_number;
+                day.appendChild(rev);
+                day.appendChild(document.createElement("br"));
+
+                var vdc = document.createElement("input");
+                vdc.type = "text";
+                vdc.id = "vdc"+day_number;
+                day.appendChild(vdc);
+                day.appendChild(document.createElement("br"));
+
+                var cs = document.createElement("input");
+                cs.type = "text";
+                cs.id = "cs"+day_number;
+                day.appendChild(cs);
+                day.appendChild(document.createElement("br"));
+
+                var doa = document.createElement("input");
+                doa.type = "text";
+                doa.id = "doa"+day_number;
+                day.appendChild(doa);
+                day.appendChild(document.createElement("br"));
+
+                var elr = document.createElement("input");
+                elr.type = "text";
+                elr.id = "elr"+day_number;
+                day.appendChild(elr);
+                day.appendChild(document.createElement("br"));
+
+                var oc = document.createElement("input");
+                oc.type = "text";
+                oc.id = "oc"+day_number;
+                day.appendChild(oc);
+                day.appendChild(document.createElement("br"));
+
+                var ovhead = document.createElement("input");
+                ovhead.type = "text";
+                ovhead.id = "ovhead"+day_number;
+                day.appendChild(ovhead);
+                day.appendChild(document.createElement("br"));
+
+                var sal = document.createElement("input");
+                sal.type = "text";
+                sal.id = "sal"+day_number;
+                day.appendChild(sal);
+                day.appendChild(document.createElement("br"));
+
+                var divi = document.createElement("input");
+                divi.type = "text";
+                divi.id = "divi"+day_number;
+                day.appendChild(divi);
+                day.appendChild(document.createElement("br"));
+
+                var deri = document.createElement("input");
+                deri.type = "text";
+                deri.id = "deri"+day_number;
+                day.appendChild(deri);
+                day.appendChild(document.createElement("br"));
+
+                var tax = document.createElement("input");
+                tax.type = "text";
+                tax.id = "tax"+day_number;
+                day.appendChild(tax);
+                day.appendChild(document.createElement("br"));
+
+                var oci = document.createElement("input");
+                oci.type = "text";
+                oci.id = "oci"+day_number;
+                day.appendChild(oci);
+                day.appendChild(document.createElement("br"));
+
+                var total = document.createElement("p");
+                total.id="total"+day_number;
+                day.appendChild(total);
+
+
+                all.appendChild(day);
+                day_number = day_number+1;
+            }
+
+            function value_margin(){
+                var element = document.getElementById("all");
+                var gchildren;
+                var rev;
+                for (var child = element.firstElementChild; child != null; child=child.nextElementSibling){
+                    if (child.id=="pass"){
+                        //pass
+                    } else{
+                        gchildren  = child.firstElementChild;
+
+                        rev = gchildren.value;
+                        for (gchildren= gchildren.nextSibling; gchildren!=null; gchildren=gchildren.nextElementSibling){
+                            if (gchildren.id.startsWith("total")){
+                                gchildren.innerHTML = rev;
+                            } else {
+                                if (gchildren.value !=null){
+                                    rev = rev-gchildren.value;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            function send_and_load(){
+                var margins = [];
+                var num = 0;
+                for (var n = 1; n<day_number; n++){
+                    num = document.getElementById('total'+n).innerHTML;
+                    margins.push(parseFloat(num));
+                }
+                var data = {'variable_margin':margins};
+                var request = new Request("/calculate", {method:"POST", dataType:"json", body: JSON.stringify(data)});
+                fetch(request).then(response => {
+                    if (response.status === 200){
+                        response.json().then(json=>{
+                            mean = json["mean"];
+                            std = json["std_dev"];
+                            mean_ln = json["mean_ln"];
+                            std_ln = json['std_ln'];
+
+                            var worse_case = Math.exp(mean_ln-(std_ln*3.72));
+
+                            var exp = mean - worse_case;
+                            document.getElementById('risk').innerText = exp.toString();
+
+                            document.getElementById('rated').style.display="inline";
+                        })
+                    }
+                })
+            }
+
+            function change_rating(rating){
+                document.getElementById('rating').innerHTML=rating;
+                var mult = multiple[rating];
+                document.getElementById('multiple').innerHTML=mult;
+
+                var worse_case = Math.exp(mean_ln-(std_ln*mult));
+
+                var exp = mean - worse_case;
+                document.getElementById('risk').innerText = exp.toString();
+
+
+            }
+
+        </script>
+    </head>
+
+    <body>
+        <h1>Please enter your Revenue Information</h1>
+        <button onclick="add_day()">Add Another Day</button>
+        <br>
+        <button onclick="value_margin()">Calculate Revenue</button>
+        <br>
+        <button onclick="send_and_load()">results</button>
+        <br>
+        <div id="all">
+            <div id="pass" style="float:left">
+                Operating Revenue:<br>
+                Volume Dependent Costs:<br>
+                Contracted Services:<br>
+                Depreciation of Assets:<br>
+                Equipment - Lease/Rental:<br>
+                Occupancy Costs:<br>
+                Overhead:<br>
+                Salaries ,Benefits & Other Employee Costs:<br>
+                Dividends :<br>
+                Derivative:<br>
+                Taxes:<br>
+                OCI:<br>
+                Value margin:
+            </div>
+        </div>
+
+        <div id="rated" style="display:None; float:left; padding-left: 30px">
+            <button onclick="change_rating('AAA')">AAA</button>
+            <button onclick="change_rating('AA')">AA</button>
+            <button onclick="change_rating('A')">A</button>
+            <button onclick="change_rating('BBB')">BBB</button>
+            <button onclick="change_rating('BB')">BB</button>
+            <button onclick="change_rating('B')">B</button>
+            <button onclick="change_rating('CCC')">CCC</button>
+            <button onclick="change_rating('CC')">CC</button>
+            <button onclick="change_rating('C')">C</button>
+            <br>
+            Rating: <p id="rating">AAA</p><br>
+            Coverage Level: <p id="multiple">3.72</p><br>
+            Business risk capital: <p id="risk"></p><br>
+
+        </div>
+
+    </body>
+
+
+</html>
+
